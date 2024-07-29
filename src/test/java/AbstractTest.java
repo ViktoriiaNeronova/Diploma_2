@@ -1,15 +1,13 @@
+import api.client.OrderClient;
+import api.client.UserClient;
 import dto.*;
 import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.Before;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
 public abstract class AbstractTest {
@@ -19,68 +17,33 @@ public abstract class AbstractTest {
         RestAssured.baseURI = "https://stellarburgers.nomoreparties.site/api";
     }
 
-    protected <T> Response postRequest(T body, String token, String url) {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Content-type", "application/json");
-        if (Objects.nonNull(token)) {
-            headers.put("Authorization", token);
-        }
-        return given()
-                .headers(headers)
-                .and()
-                .body(body)
-                .when()
-                .post(url);
-    }
-
-    protected Response deleteRequest(String url, String token) {
-        return given()
-                .header("Content-type", "application/json")
-                .header("Authorization", token)
-                .when()
-                .delete(url);
-    }
-
-    protected Response patchRequest(UpdateUserRequest user, String token, String url) {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Content-type", "application/json");
-        if (Objects.nonNull(token)) {
-            headers.put("Authorization", token);
-        }
-        return given()
-                .headers(headers)
-                .and()
-                .body(user)
-                .when()
-                .patch(url);
-    }
-
     @Step("Create user")
-    protected Response createUser(CreateUserRequest user){
-        return postRequest(user, null,  "/auth/register");
+    public static Response createUser(CreateUserRequest user){
+        return UserClient.createUser(user);
     }
 
     @Step("Login user")
-    protected Response loginUser(LoginRequest user){
-        return postRequest(user, null, "/auth/login");
+    public static Response loginUser(LoginRequest user){
+        return UserClient.loginUser(user);
     }
 
     @Step("Delete user")
-    protected Response deleteUser(String token) {
-        return deleteRequest( "/auth/user", token);
+    public static Response deleteUser(String token) {
+        return UserClient.deleteUser( token);
     }
 
     @Step("Logout user")
-    protected Response logoutUser(String refreshToken){
-        return postRequest(new LogoutRequest(refreshToken), null, "/auth/logout");
+    public static Response logoutUser(String refreshToken){
+        return UserClient.logoutUser(refreshToken);
     }
 
     @Step("Update user")
-    protected Response updateUser(UpdateUserRequest user, String token){
-        return patchRequest(user, token, "/auth/user");
+    public static Response updateUser(UpdateUserRequest user, String token){
+        return UserClient.updateUser(user, token);
     }
 
-    protected String createUserAndGetAccessToken(CreateUserRequest user) {
+    @Step("Get access token from created user")
+    public static String createUserAndGetAccessToken(CreateUserRequest user) {
         Response response = createUser(user);
 
         String accessToken = response.then().assertThat()
@@ -95,27 +58,16 @@ public abstract class AbstractTest {
 
     @Step("Create order")
     protected Response createOrder(CreateOrderRequest order, String token){
-        return postRequest(order, token, "/orders");
-    }
-
-    protected String getRandomEmail() {
-        return UUID.randomUUID() + "@yandex.ru";
+        return OrderClient.createOrder(order, token);
     }
 
     @Step("Get orders")
     protected Response getOrder(String token){
-        return getRequest(token,"/orders");
+        return OrderClient.getOrder(token);
     }
 
-    protected Response getRequest(String token, String url) {
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Content-type", "application/json");
-        if (Objects.nonNull(token)) {
-            headers.put("Authorization", token);
-        }
-        return given()
-                .headers(headers)
-                .when()
-                .get(url);
-            }
+    public static String getRandomEmail() {
+        return UUID.randomUUID() + "@yandex.ru";
+    }
+
 }
